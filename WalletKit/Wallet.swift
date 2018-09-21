@@ -6,19 +6,39 @@
 //  Copyright © 2018 yuzushioh. All rights reserved.
 //
 
+public enum DerivationSpec {
+    case bip44
+    case bip49
+    case bip84
+}
+
 public final class Wallet {
     public let privateKey: PrivateKey
     public let publicKey: PublicKey
     public let network: Network
+    public let spec: DerivationSpec
     
-    public init(seed: Data, network: Network) {
+    public init(seed: Data, network: Network, spec: DerivationSpec = .bip44) {
         self.network = network
-        privateKey = PrivateKey(seed: seed, network: network)
+        self.spec = spec
+        
+        privateKey = PrivateKey(seed: seed, network: network, spec: spec)
         publicKey = privateKey.publicKey
     }
     
+    private var purpose: UInt32 {
+        switch spec {
+        case .bip44:
+            return 44
+        case .bip49:
+            return 49
+        case .bip84:
+            return 84
+        }
+    }
+    
     private var receivePrivateKey: PrivateKey {
-        let purpose = privateKey.derived(at: 44, hardens: true)
+        let purpose = privateKey.derived(at: self.purpose, hardens: true)
         let coinType = purpose.derived(at: network.coinType, hardens: true)
         let account = coinType.derived(at: 0, hardens: true)
         let receive = account.derived(at: 0)
@@ -26,54 +46,26 @@ public final class Wallet {
     }
     
     private var changePrivateKey: PrivateKey {
-        let purpose = privateKey.derived(at: 44, hardens: true)
+        let purpose = privateKey.derived(at: self.purpose, hardens: true)
         let coinType = purpose.derived(at: network.coinType, hardens: true)
         let account = coinType.derived(at: 0, hardens: true)
         let change = account.derived(at: 1)
         return change
     }
 
-    private var receiveBIP49PrivateKey: PrivateKey {
-        let purpose = privateKey.derived(at: 49, hardens: true)
-        let coinType = purpose.derived(at: network.coinType, hardens: true)
-        let account = coinType.derived(at: 0, hardens: true)
-        let receive = account.derived(at: 0)
-        return receive
+    public func privateKey(at index: UInt32) -> PrivateKey {
+        return receivePrivateKey.derived(at: index)
     }
     
-    private var changeBIP49PrivateKey: PrivateKey {
-        let purpose = privateKey.derived(at: 49, hardens: true)
-        let coinType = purpose.derived(at: network.coinType, hardens: true)
-        let account = coinType.derived(at: 0, hardens: true)
-        let change = account.derived(at: 1)
-        return change
+    public func publicKey(at index: UInt32) -> PublicKey {
+        return receivePrivateKey.derived(at: index).publicKey
     }
     
-    private var receiveBIP84PrivateKey: PrivateKey {
-        let purpose = privateKey.derived(at: 84, hardens: true)
-        let coinType = purpose.derived(at: network.coinType, hardens: true)
-        let account = coinType.derived(at: 0, hardens: true)
-        let receive = account.derived(at: 0)
-        return receive
+    public func addressProvider(at index: UInt32) -> AddressProvider {
+        return receivePrivateKey.derived(at: index).publicKey.addressProvider
     }
     
-    private var changeBIP84PrivateKey: PrivateKey {
-        let purpose = privateKey.derived(at: 84, hardens: true)
-        let coinType = purpose.derived(at: network.coinType, hardens: true)
-        let account = coinType.derived(at: 0, hardens: true)
-        let change = account.derived(at: 1)
-        return change
-    }
-    
-    public func generateAddress(at index: UInt32) -> String {
-        return receivePrivateKey.derived(at: index).publicKey.address
-    }
-    
-    public func generateAddressBIP49(at index: UInt32) -> String {
-        return receiveBIP49PrivateKey.derived(at: index).publicKey.addressBIP49
-    }
-    
-    public func generateAddressBIP84(at index: UInt32) -> String {
-        return receiveBIP84PrivateKey.derived(at: index).publicKey.addressBIP84
+    public func generateAddress(at index: UInt32) -> String? {
+        return receivePrivateKey.derived(at: index).publicKey.addressProvider.address
     }
 }

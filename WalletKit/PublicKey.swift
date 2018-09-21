@@ -13,10 +13,11 @@ public struct PublicKey {
     public let fingerprint: UInt32
     public let index: UInt32
     public let network: Network
+    public let spec: DerivationSpec
     
     private let privateKey: PrivateKey
     
-    init(privateKey: PrivateKey, chainCode: Data, network: Network, depth: UInt8, fingerprint: UInt32, index: UInt32) {
+    init(privateKey: PrivateKey, chainCode: Data, network: Network, depth: UInt8, fingerprint: UInt32, index: UInt32, spec: DerivationSpec = .bip44) {
         self.raw = Crypto.generatePublicKey(data: privateKey.raw, compressed: true)
         self.chainCode = chainCode
         self.depth = depth
@@ -24,47 +25,7 @@ public struct PublicKey {
         self.index = index
         self.network = network
         self.privateKey = privateKey
-    }
-    
-    // NOTE: https://github.com/bitcoin/bips/blob/master/bip-0013.mediawiki
-    public var address: String {
-        let prefix = Data([network.publicKeyHash])
-        let payload = RIPEMD160.hash(raw.sha256())
-        let checksum = (prefix + payload).doubleSHA256.prefix(4)
-        return Base58.encode(prefix + payload + checksum)
-    }
-    
-    public var redeemScript: Data    {
-        var redeem = Data([0x00, 0x14])
-        redeem.append(RIPEMD160.hash(raw.sha256()))
-        return redeem
-    }
-
-    public var outputScript: Data    {
-        var script = Data([0xa9, 0x14])
-        script.append(RIPEMD160.hash(redeemScript.sha256()))
-        script.append(Data([0x87]))
-        return script
-    }
-
-    public var addressBIP49: String {
-        let prefix = Data([network.scriptHash])
-        let payload = RIPEMD160.hash(redeemScript.sha256())
-        let checksum = (prefix + payload).doubleSHA256.prefix(4)
-        return Base58.encode(prefix + payload + checksum)
-    }
-    
-    public var addressBIP84: String {
-        let addrCoder = SegwitAddrCoder()
-        var address : String
-        do  {
-            address = try addrCoder.encode(hrp: network.bech32, version: 0x00, program: RIPEMD160.hash(raw.sha256()))
-        }
-        catch {
-            address = "";
-        }
-        
-        return address
+        self.spec = spec
     }
     
     public var extended: String {
@@ -77,5 +38,13 @@ public struct PublicKey {
         extendedPublicKeyData += raw
         let checksum = extendedPublicKeyData.doubleSHA256.prefix(4)
         return Base58.encode(extendedPublicKeyData + checksum)
+    }
+    
+    public lazy var uncompressed: Data = {
+        return Crypto.generatePublicKey(data: privateKey.raw, compressed: false)
+    }()
+    
+    var addressProvider: AddressProvider {
+        return AddressFactory.provider(network: network, publicKey: self)
     }
 }

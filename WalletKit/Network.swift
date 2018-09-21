@@ -6,9 +6,28 @@
 //  Copyright © 2018 yuzushioh. All rights reserved.
 //
 
+public enum Coin {
+    case bitcoin
+    case litecoin
+//    case nem
+    case ethereum
+    case ethereumClassic
+//    case monero
+//    case zcash
+//    case lisk
+//    case bitcoinCash
+}
+
 public enum Network {
-    case main
-    case test
+    case main(Coin)
+    case test(Coin)
+    
+    public var coin: Coin {
+        switch self {
+        case .main(let coin), .test(let coin):
+            return coin
+        }
+    }
 
     public var privateKeyVersion: UInt32 {
         switch self {
@@ -28,75 +47,34 @@ public enum Network {
         }
     }
     
-    public var privateKeyBIP49Version: UInt32 {
-        switch self {
-        case .main:
-            return 0x049D7878
-        case .test:
-            return 0x044A4E28
-        }
-    }
-    
-    public var publicKeyBIP49Version: UInt32 {
-        switch self {
-        case .main:
-            return 0x049D7CB2
-        case .test:
-            return 0x044A5262
-        }
-    }
-
-    public var privateKeyBIP84Version: UInt32 {
-        switch self {
-        case .main:
-            return 0x04B2430C
-        case .test:
-            return 0x045F18BC
-        }
-    }
-    
-    public var publicKeyBIP84Version: UInt32 {
-        switch self {
-        case .main:
-            return 0x04B24746
-        case .test:
-            return 0x045F1CF6
-        }
-    }
-    
-    public var publicKeyHash: UInt8 {
-        switch self {
-        case .main:
-            return 0x00
-        case .test:
-            return 0x6f
-        }
-    }
-    
-    public var scriptHash: UInt8 {
-        switch self {
-        case .main:
-            return 0x05
-        case .test:
-            return 0xc4
-        }
-    }
-    
-    public var bech32: String {
-        switch self {
-        case .main:
-            return "bc"
-        case .test:
-            return "tb"
-        }
-    }
-    
+    // https://github.com/satoshilabs/slips/blob/master/slip-0044.md
     public var coinType: UInt32 {
         switch self {
-        case .main:
-            return 0
+        case .main(let coin):
+            switch coin {
+            case .bitcoin:
+                return 0
+            case .litecoin:
+                return 2
+//            case .nem:
+//                return 43
+            case .ethereum:
+                return 60
+            case .ethereumClassic:
+                return 61
+//            case .monero:
+//                return 128
+//            case .zcash:
+//                return 133
+//            case .lisk:
+//                return 134
+//            case .bitcoinCash:
+//                return 145
+            }
+            
         case .test:
             return 1
         }
     }
+
 }

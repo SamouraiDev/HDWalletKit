@@ -19,10 +19,10 @@ class ViewController: UIViewController {
         // abandon amount liar amount expire adjust cage candy arch gather drum buyer
         
         let seed = Mnemonic.createSeed(mnemonic: mnemonic)
-        print(seed.toHexString())
+        //print(seed.toHexString())
         
         // By calling initialize, you can now access to your wallet.
-        let wallet = Wallet(seed: seed, network: .main)
-        print(wallet.generateAddress(at: 0))
+        let wallet = Wallet(seed: seed, network: .main(.bitcoin))
+        //print(wallet.generateAddress(at: 0))
     }
 }

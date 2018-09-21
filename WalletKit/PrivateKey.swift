@@ -13,8 +13,9 @@ public struct PrivateKey {
     public let fingerprint: UInt32
     public let index: UInt32
     public let network: Network
+    public let spec: DerivationSpec
     
-    public init(seed: Data, network: Network) {
+    public init(seed: Data, network: Network, spec: DerivationSpec = .bip44) {
         let output = Crypto.HMACSHA512(key: "Bitcoin seed".data(using: .ascii)!, data: seed)
         self.raw = output[0..<32]
         self.chainCode = output[32..<64]
@@ -22,19 +23,21 @@ public struct PrivateKey {
         self.fingerprint = 0
         self.index = 0
         self.network = network
+        self.spec = spec
     }
     
-    private init(privateKey: Data, chainCode: Data, depth: UInt8, fingerprint: UInt32, index: UInt32, network: Network) {
+    private init(privateKey: Data, chainCode: Data, depth: UInt8, fingerprint: UInt32, index: UInt32, network: Network, spec: DerivationSpec = .bip44) {
         self.raw = privateKey
         self.chainCode = chainCode
         self.depth = depth
         self.fingerprint = fingerprint
         self.index = index
         self.network = network
+        self.spec = spec
     }
     
     public var publicKey: PublicKey {
-        return PublicKey(privateKey: self, chainCode: chainCode, network: network, depth: depth, fingerprint: fingerprint, index: index)
+        return PublicKey(privateKey: self, chainCode: chainCode, network: network, depth: depth, fingerprint: fingerprint, index: index, spec: spec)
     }
     
     public var extended: String {
@@ -80,7 +83,8 @@ public struct PrivateKey {
             depth: depth + 1,
             fingerprint: fingurePrint,
             index: derivingIndex,
-            network: network
+            network: network,
+            spec: spec
         )
     }
 }
